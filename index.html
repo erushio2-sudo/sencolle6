@@ -51,6 +51,8 @@ input[type=number]{width:5.4em;height:42px;font:700 17px var(--body);text-align:
   border:1px solid var(--line);border-radius:6px;font-variant-numeric:tabular-nums}
 button{font:500 14px var(--body);color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:6px;min-height:42px;min-width:42px;padding:0 10px;cursor:pointer}
 :focus-visible{outline:2px solid var(--flame);outline-offset:1px}
+button:disabled{opacity:.4;cursor:default}
+input[readonly]{background:var(--chip);color:var(--sub)}
 .quick{display:flex;gap:6px;flex-wrap:wrap;grid-column:1/-1}
 .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .seg button{padding:4px;font-size:13px}
@@ -91,12 +93,22 @@ details > .inner{display:grid;gap:10px;padding-bottom:12px}
   <section>
     <h2>AT初当たり</h2>
     <div class="field">
+      <label for="start">打ち始めのゲーム数</label>
+      <div class="step"><input id="start" type="number" min="0" inputmode="numeric"></div>
+      <div class="hint">途中から座ったときの通常時ゲーム数（累計）です。自分の分だけで見るなら入れ、前の人の分も含めて見るなら0のままにします。AT初当たりも同じ範囲で数えてください。</div>
+    </div>
+    <div class="field">
+      <label for="cur">現在の通常時ゲーム数</label>
+      <div class="step"><input id="cur" type="number" min="0" inputmode="numeric"></div>
+      <div class="hint">データカウンターの通常時ゲーム数（累計）をそのまま入れます。入れると下の「通常時ゲーム数」は自動で計算します。</div>
+    </div>
+    <div class="field">
       <label for="games">通常時ゲーム数</label>
       <div class="step"><input id="games" type="number" min="0" inputmode="numeric"></div>
-      <div class="quick">
+      <div class="quick" id="gamesQuick">
         <button data-add="games:100">+100</button><button data-add="games:500">+500</button><button data-add="games:-100">-100</button>
       </div>
-      <div class="hint">AT中を除いたゲーム数です。総ゲーム数を入れると設定が低く出ます。</div>
+      <div class="hint" id="gamesHint">AT中を除いたゲーム数です。総ゲーム数を入れると設定が低く出ます。</div>
     </div>
     <div class="field">
       <label for="at">AT初当たり</label>
@@ -243,7 +255,7 @@ function calc({games=0,at=0,tenma={},atg=0,zones={},prior='even',rules=[]}){
 // ==/calc==
 
 const KEY='sencolle6-settei-v1';
-const FIELDS=['games','at','atg','oni','furi','kiwami',...TENMA.map(x=>x.id),...ZONES.map(x=>x.id)];
+const FIELDS=['cur','start','games','at','atg','oni','furi','kiwami',...TENMA.map(x=>x.id),...ZONES.map(x=>x.id)];
 const $=id=>document.getElementById(id);
 let state={prior:'even',checked:{}};
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify({...state,...readNums()})); }catch(e){} }
@@ -301,7 +313,19 @@ function activeRules(){
   });
   return {rules,guess};
 }
+function syncGames(){
+  const c=Math.max(0,Math.floor(Number($('cur').value)||0)), st=Math.max(0,Math.floor(Number($('start').value)||0));
+  const auto=c>0;
+  if(auto) $('games').value=Math.max(c-st,0);
+  $('games').readOnly=auto;
+  $('gamesQuick').querySelectorAll('button').forEach(b=>{ b.disabled=auto; });
+  $('gamesHint').textContent=auto
+    ? `現在${c}G − 打ち始め${st}G で自動計算しています。手で入れるときは「現在の通常時ゲーム数」を空にします。`
+    : 'AT中を除いたゲーム数です。総ゲーム数を入れると設定が低く出ます。';
+  return auto && st>c;
+}
 function render(){
+  const startOver=syncGames();
   const n=readNums(), {rules,guess}=activeRules(), s=$('status');
   document.querySelectorAll('[data-prior]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.prior===state.prior));
   $('priorNote').textContent=PRIORS[state.prior].note;
@@ -313,7 +337,8 @@ function render(){
   if(n.atg||zN) $('zone').open=true;
   renderRefs(n);
   let msg='', warn=false;
-  if(n.at>n.games){ msg='AT初当たりが通常時ゲーム数より多くなっています。入力を確認してください。'; warn=true; }
+  if(startOver){ msg='打ち始めのゲーム数が現在のゲーム数より多くなっています。'; warn=true; }
+  else if(n.at>n.games){ msg='AT初当たりが通常時ゲーム数より多くなっています。入力を確認してください。'; warn=true; }
   else if(zN && !n.atg){ msg='特化ゾーンはAT中ゲーム数を入れたときだけ計算に入ります。'; }
   let r=calc({...n,tenma,zones,prior:state.prior,rules});
   if(!r){
