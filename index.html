@@ -125,6 +125,29 @@ details > .inner{display:grid;gap:10px;padding-bottom:12px}
   </section>
 
   <section>
+    <h2>参考値（計算には入れない）</h2>
+    <details id="ref"><summary>鬼ヶ島チャレンジ・CZ・極トリガー<span class="n" id="refN"></span></summary><div class="inner">
+      <p class="note">設定差はあるとされていますが、公表されているのは設定1の値だけです。設定6の欄は P-TOWN が数千G打った実戦の記録で、回数が少ないので目安にとどめてください。鬼ヶ島は実戦で設定6のほうが少なく、高い設定ほど多いとは限りません。</p>
+      <div class="field">
+        <label for="oni">鬼ヶ島チャレンジ</label>
+        <div class="step"><button data-add="oni:-1" aria-label="鬼ヶ島チャレンジを1減らす">-</button><input id="oni" type="number" min="0" inputmode="numeric"><button data-add="oni:1" aria-label="鬼ヶ島チャレンジを1増やす">+</button></div>
+        <div class="hint">通常時ゲーム数で割ります。</div>
+      </div>
+      <div class="field">
+        <label for="furi">振り向かせたいむ（CZ）</label>
+        <div class="step"><button data-add="furi:-1" aria-label="振り向かせたいむを1減らす">-</button><input id="furi" type="number" min="0" inputmode="numeric"><button data-add="furi:1" aria-label="振り向かせたいむを1増やす">+</button></div>
+        <div class="hint">通常時ゲーム数で割ります。</div>
+      </div>
+      <div class="field">
+        <label for="kiwami">極トリガー</label>
+        <div class="step"><button data-add="kiwami:-1" aria-label="極トリガーを1減らす">-</button><input id="kiwami" type="number" min="0" inputmode="numeric"><button data-add="kiwami:1" aria-label="極トリガーを1増やす">+</button></div>
+        <div class="hint">9種の合算です。分母が公表されていないため、総ゲーム数（通常時＋AT中）で割っています。</div>
+      </div>
+      <div id="refOut" class="checks"></div>
+    </div></details>
+  </section>
+
+  <section>
     <h2>見えた確定演出</h2>
     <div id="hints" class="wrap" style="gap:8px"></div>
     <p class="note">終了画面の信長（奇数）・小町（偶数）・水着1/2（高設定）、ボイスの最上（奇数）・秀吉/家康（偶数）・光秀（高設定）、WONDERランプの青は「示唆」で出現率が未公表なので計算に入れていません。</p>
@@ -164,6 +187,13 @@ const PRIORS = {
   low:{name:'低設定中心',w:[40,25,15,10,5,5],note:'普段の店を想定した仮の配分です（1:40 2:25 3:15 4:10 5:5 6:5）。'},
   event:{name:'狙い日',w:[15,15,15,20,20,15],note:'高設定が入りやすい日を想定した仮の配分です（1〜3:各15 4,5:各20 6:15）。'},
 };
+// 参考値（計算外）。s1 = 解析の設定1、p1/p6 = P-TOWN 実戦値
+const REFS = [
+  {name:'鬼ヶ島＋CZ合算', s1:71,   p1:'—',     p6:'—'},
+  {name:'鬼ヶ島チャレンジ', s1:null, p1:'1/78.7', p6:'1/98.1'},
+  {name:'振り向かせたいむ', s1:null, p1:'1/682.3',p6:'1/515.0'},
+  {name:'極トリガー合算', s1:1059, p1:'—',     p6:'—'},
+];
 // rule = 残る設定の一覧
 const HINTS = [
   {group:'AT終了画面',items:[['敵武将3人',[2,3,4,5,6]],['信長・光秀・利休・有楽',[4,5,6]],['しずもん絵',[6]]]},
@@ -213,7 +243,7 @@ function calc({games=0,at=0,tenma={},atg=0,zones={},prior='even',rules=[]}){
 // ==/calc==
 
 const KEY='sencolle6-settei-v1';
-const FIELDS=['games','at','atg',...TENMA.map(x=>x.id),...ZONES.map(x=>x.id)];
+const FIELDS=['games','at','atg','oni','furi','kiwami',...TENMA.map(x=>x.id),...ZONES.map(x=>x.id)];
 const $=id=>document.getElementById(id);
 let state={prior:'even',checked:{}};
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify({...state,...readNums()})); }catch(e){} }
@@ -281,6 +311,7 @@ function render(){
   const zN=ZONES.reduce((a,x)=>a+n[x.id],0);
   $('zoneN').textContent=n.atg?`AT中${n.atg}G`:'';
   if(n.atg||zN) $('zone').open=true;
+  renderRefs(n);
   let msg='', warn=false;
   if(n.at>n.games){ msg='AT初当たりが通常時ゲーム数より多くなっています。入力を確認してください。'; warn=true; }
   else if(zN && !n.atg){ msg='特化ゾーンはAT中ゲーム数を入れたときだけ計算に入ります。'; }
@@ -311,6 +342,18 @@ function render(){
   if(guess) msg+=' 他機種準拠の演出を含みます。';
   s.textContent=msg; s.classList.toggle('warn',warn);
   save();
+}
+
+function renderRefs(n){
+  const rate=(k,g)=>!g?'通常時G未入力':k?'1/'+(g/k).toFixed(1):'0回';
+  const totalG=n.games+n.atg;
+  const mine=[rate(n.oni+n.furi,n.games),rate(n.oni,n.games),rate(n.furi,n.games),
+    !n.atg?'AT中G未入力':n.kiwami?'1/'+(totalG/n.kiwami).toFixed(1):'0回'];
+  const any=n.oni||n.furi||n.kiwami;
+  $('refN').textContent=any?`${n.oni+n.furi+n.kiwami}回`:'';
+  if(any) $('ref').open=true;
+  $('refOut').innerHTML=`<label style="grid-template-columns:1fr auto auto auto;font-size:12px;color:var(--sub)"><span></span><span>自分</span><span>設定1</span><span>設定6実戦</span></label>`+
+    REFS.map((r,i)=>`<label style="grid-template-columns:1fr auto auto auto;gap:10px;font-variant-numeric:tabular-nums"><span>${r.name}</span><b>${mine[i]}</b><span class="tag">${r.s1?'1/'+r.s1:r.p1+'<small>実戦</small>'}</span><span class="tag">${r.p6}</span></label>`).join('');
 }
 
 let armed=null;
