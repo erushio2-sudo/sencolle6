@@ -95,20 +95,15 @@ details > .inner{display:grid;gap:10px;padding-bottom:12px}
     <div class="field">
       <label for="start">打ち始めのゲーム数</label>
       <div class="step"><input id="start" type="number" min="0" inputmode="numeric"></div>
-      <div class="hint">途中から座ったときの通常時ゲーム数（累計）です。自分の分だけで見るなら入れ、前の人の分も含めて見るなら0のままにします。AT初当たりも同じ範囲で数えてください。</div>
-    </div>
-    <div class="field">
-      <label for="cur">現在の通常時ゲーム数</label>
-      <div class="step"><input id="cur" type="number" min="0" inputmode="numeric"></div>
-      <div class="hint">データカウンターの通常時ゲーム数（累計）をそのまま入れます。入れると下の「通常時ゲーム数」は自動で計算します。</div>
+      <div class="hint">途中から座ったときのデータカウンターの通常時ゲーム数です。入れると、下の通常時ゲーム数からこの分を引いた「自分が打った分」で計算します。前の人の分も含めて見るなら空のままにします。AT初当たりも同じ範囲で数えてください。</div>
     </div>
     <div class="field">
       <label for="games">通常時ゲーム数</label>
       <div class="step"><input id="games" type="number" min="0" inputmode="numeric"></div>
-      <div class="quick" id="gamesQuick">
+      <div class="quick">
         <button data-add="games:100">+100</button><button data-add="games:500">+500</button><button data-add="games:-100">-100</button>
       </div>
-      <div class="hint" id="gamesHint">AT中を除いたゲーム数です。総ゲーム数を入れると設定が低く出ます。</div>
+      <div class="hint" id="gamesHint">AT中を除いた、今のデータカウンターの通常時ゲーム数です。総ゲーム数を入れると設定が低く出ます。</div>
     </div>
     <div class="field">
       <label for="at">AT初当たり</label>
@@ -255,7 +250,7 @@ function calc({games=0,at=0,tenma={},atg=0,zones={},prior='even',rules=[]}){
 // ==/calc==
 
 const KEY='sencolle6-settei-v1';
-const FIELDS=['cur','start','games','at','atg','oni','furi','kiwami',...TENMA.map(x=>x.id),...ZONES.map(x=>x.id)];
+const FIELDS=['start','games','at','atg','oni','furi','kiwami',...TENMA.map(x=>x.id),...ZONES.map(x=>x.id)];
 const $=id=>document.getElementById(id);
 let state={prior:'even',checked:{}};
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify({...state,...readNums()})); }catch(e){} }
@@ -313,20 +308,14 @@ function activeRules(){
   });
   return {rules,guess};
 }
-function syncGames(){
-  const c=Math.max(0,Math.floor(Number($('cur').value)||0)), st=Math.max(0,Math.floor(Number($('start').value)||0));
-  const auto=c>0;
-  if(auto) $('games').value=Math.max(c-st,0);
-  $('games').readOnly=auto;
-  $('gamesQuick').querySelectorAll('button').forEach(b=>{ b.disabled=auto; });
-  $('gamesHint').textContent=auto
-    ? `現在${c}G − 打ち始め${st}G で自動計算しています。手で入れるときは「現在の通常時ゲーム数」を空にします。`
-    : 'AT中を除いたゲーム数です。総ゲーム数を入れると設定が低く出ます。';
-  return auto && st>c;
-}
 function render(){
-  const startOver=syncGames();
   const n=readNums(), {rules,guess}=activeRules(), s=$('status');
+  // 途中から打ったときは打ち始めの分を引いて自分の分だけにする
+  const rawGames=n.games, startOver=n.start>0 && n.start>rawGames;
+  if(n.start>0) n.games=Math.max(rawGames-n.start,0);
+  $('gamesHint').textContent=n.start>0
+    ? `自分が打った分：${n.games}G（${rawGames}G − 打ち始め${n.start}G）`
+    : 'AT中を除いた、今のデータカウンターの通常時ゲーム数です。総ゲーム数を入れると設定が低く出ます。';
   document.querySelectorAll('[data-prior]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.prior===state.prior));
   $('priorNote').textContent=PRIORS[state.prior].note;
   const tenma={}; TENMA.forEach(x=>{ tenma[x.id]=n[x.id]; });
@@ -337,7 +326,7 @@ function render(){
   if(n.atg||zN) $('zone').open=true;
   renderRefs(n);
   let msg='', warn=false;
-  if(startOver){ msg='打ち始めのゲーム数が現在のゲーム数より多くなっています。'; warn=true; }
+  if(startOver){ msg='打ち始めのゲーム数が通常時ゲーム数より多くなっています。'; warn=true; }
   else if(n.at>n.games){ msg='AT初当たりが通常時ゲーム数より多くなっています。入力を確認してください。'; warn=true; }
   else if(zN && !n.atg){ msg='特化ゾーンはAT中ゲーム数を入れたときだけ計算に入ります。'; }
   let r=calc({...n,tenma,zones,prior:state.prior,rules});
