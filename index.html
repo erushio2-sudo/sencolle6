@@ -107,18 +107,18 @@ details > .inner{display:grid;gap:10px;padding-bottom:12px}
 
   <section>
     <h2>天魔一閃の上乗せ</h2>
-    <p class="note">天魔一閃で何枚乗ったかを数えます。1050枚は設定1で35%、設定6で68%です。</p>
+    <p class="note">天魔一閃で何枚乗ったかを数えます。1050枚は設定1で35%、設定6で68%です。レア役で発生した天魔一閃は1050枚がほぼ確定なので、数えないでください。</p>
     <div id="tenma" class="wrap" style="gap:8px"></div>
   </section>
 
   <section>
     <h2>特化ゾーン（おまけ）</h2>
     <details id="zone"><summary>ロボニャン・夢幻斬り・3人のコレクション<span class="n" id="zoneN"></span></summary><div class="inner">
-      <p class="note">設定差はごく小さく、夢幻斬りWONDERだけ高設定でやや多い程度です。分母は総ゲーム数（通常時＋AT中）とみなして計算しています。</p>
+      <p class="note">AT中の出現率です。設定差はごく小さく、夢幻斬りWONDERだけ高設定でやや多い程度です。</p>
       <div class="field">
-        <label for="total">総ゲーム数</label>
-        <div class="step"><input id="total" type="number" min="0" inputmode="numeric"></div>
-        <div class="hint">データ表示の総ゲーム数です。入れたときだけ計算に入ります。</div>
+        <label for="atg">AT中ゲーム数</label>
+        <div class="step"><input id="atg" type="number" min="0" inputmode="numeric"></div>
+        <div class="hint">総ゲーム数から通常時ゲーム数を引いた数です。入れたときだけ計算に入ります。</div>
       </div>
       <div id="zones" class="wrap" style="gap:8px"></div>
     </div></details>
@@ -137,7 +137,7 @@ details > .inner{display:grid;gap:10px;padding-bottom:12px}
 
   <div class="foot">
     <p>出玉や勝ちを保証するものではありません。「濃厚」は100%と断定された情報ではなく、数値は解析サイトの掲載値です。「他機種準拠」の演出は、本機で未確認の推測です。</p>
-    <p>数値の出典：<a href="https://nana-press.com/kaiseki/machine/1156/37681/" target="_blank" rel="noopener">なな徹</a>（2026/09/02更新）、<a href="https://p-town.dmm.com/machines/5010" target="_blank" rel="noopener">P-WORLD/P-TOWN</a></p>
+    <p>数値の出典：<a href="https://nana-press.com/kaiseki/machine/1156/37681/" target="_blank" rel="noopener">なな徹</a>（2026/09/02更新）、<a href="https://p-town.dmm.com/machines/5010" target="_blank" rel="noopener">P-TOWN</a>、<a href="https://1geki.jp/slot/l_sencolle6/0/" target="_blank" rel="noopener">一撃</a>（2026/09/28更新）、<a href="https://chonborista.com/slot/konami-slot/257820/" target="_blank" rel="noopener">ちょんぼりすた</a>（2026/10/27更新）。2026/11/03 時点で、鬼ヶ島チャレンジ・CZ・極トリガー・終了画面の出現率は設定1以外未公表です。</p>
   </div>
 </div>
 
@@ -153,7 +153,7 @@ const TENMA = [
   {id:'t800', name:'800枚',  r:[9.8,9.9,9.2,7.3,6.2,5.1]},
   {id:'t1050',name:'1050枚', r:[35.2,36.9,40.2,53.7,61.2,68.2]},
 ];
-// 特化ゾーン 1/x（総Gとみなす）
+// AT中の特化ゾーン 1/x
 const ZONES = [
   {id:'zRobo', name:'ロボニャンドライブ', r:[3532.4,3518.6,3561.1,3622.8,3686.2,3781.6]},
   {id:'zMugen',name:'夢幻斬りWONDER',     r:[9415.7,9361.9,9352.4,9071.5,8623.7,8195.5]},
@@ -168,7 +168,7 @@ const PRIORS = {
 const HINTS = [
   {group:'AT終了画面',items:[['敵武将3人',[2,3,4,5,6]],['信長・光秀・利休・有楽',[4,5,6]],['しずもん絵',[6]]]},
   {group:'セット開始の扉絵',items:[['謙信',[2,3,4,5,6]],['信長・光秀（水着）',[4,5,6]],['味方キャラ6人',[5,6]],['デフォルメキャラ全員',[6]]]},
-  {group:'AT中の獲得枚数表示',items:[['222枚OVER',[2,3,4,5,6]],['246枚OVER',[2,4,6],'偶数'],['456枚OVER',[4,5,6]],['573枚OVER',[6]],['666枚OVER',[6]]]},
+  {group:'AT中の獲得枚数表示',items:[['222枚OVER',[2,3,4,5,6]],['246枚OVER',[2,4,6],'偶数'],['456枚OVER',[4,5,6]],['573枚OVER',[6]],['666枚OVER',[6],null,'P-TOWN・なな徹のみ記載']]},
   {group:'7揃いの停止形',items:[['4の形',[4,5,6]],['7の形',[6]]]},
   {group:'夢幻斬りWONDER終了時のランプ',items:[['緑',[2,3,4,5,6]],['赤',[4,5,6]],['虹',[6]]]},
   {group:'エンディング中のレア小役ボイス',items:[['楊貴妃「たいへんたいへーん！」',[4,5,6]],['クレオパトラ「ノリノリのようだニャ！」',[5,6]],['小野小町「元気いっぱいだねぇ♪」',[6]]]},
@@ -176,7 +176,7 @@ const HINTS = [
 ];
 function binom(k,n,p){ return k*Math.log(p)+(n-k)*Math.log(1-p); }
 
-function calc({games=0,at=0,tenma={},total=0,zones={},prior='even',rules=[]}){
+function calc({games=0,at=0,tenma={},atg=0,zones={},prior='even',rules=[]}){
   const w = PRIORS[prior].w;
   const logs = SETTINGS.map((s,i)=>{
     if(!rules.every(r=>r.includes(s))) return -Infinity;
@@ -186,7 +186,7 @@ function calc({games=0,at=0,tenma={},total=0,zones={},prior='even',rules=[]}){
       const n = tenma[x.id]||0;
       if(n) l += n*Math.log(x.r[i]/100);
     }
-    if(total>0){
+    if(atg>0){
       let hit = 0;
       for(const z of ZONES){
         const n = zones[z.id]||0;
@@ -194,7 +194,7 @@ function calc({games=0,at=0,tenma={},total=0,zones={},prior='even',rules=[]}){
         l += n*Math.log(1/z.r[i]);
       }
       const miss = 1-ZONES.reduce((a,z)=>a+1/z.r[i],0);
-      l += Math.max(total-hit,0)*Math.log(miss);
+      l += Math.max(atg-hit,0)*Math.log(miss);
     }
     return l;
   });
@@ -213,7 +213,7 @@ function calc({games=0,at=0,tenma={},total=0,zones={},prior='even',rules=[]}){
 // ==/calc==
 
 const KEY='sencolle6-settei-v1';
-const FIELDS=['games','at','total',...TENMA.map(x=>x.id),...ZONES.map(x=>x.id)];
+const FIELDS=['games','at','atg',...TENMA.map(x=>x.id),...ZONES.map(x=>x.id)];
 const $=id=>document.getElementById(id);
 let state={prior:'even',checked:{}};
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify({...state,...readNums()})); }catch(e){} }
@@ -279,18 +279,17 @@ function render(){
   const zones={}; ZONES.forEach(x=>{ zones[x.id]=n[x.id]; });
   const tN=TENMA.reduce((a,x)=>a+n[x.id],0);
   const zN=ZONES.reduce((a,x)=>a+n[x.id],0);
-  $('zoneN').textContent=n.total?`${n.total}G`:'';
-  if(n.total||zN) $('zone').open=true;
+  $('zoneN').textContent=n.atg?`AT中${n.atg}G`:'';
+  if(n.atg||zN) $('zone').open=true;
   let msg='', warn=false;
   if(n.at>n.games){ msg='AT初当たりが通常時ゲーム数より多くなっています。入力を確認してください。'; warn=true; }
-  else if(zN && !n.total){ msg='特化ゾーンは総ゲーム数を入れたときだけ計算に入ります。'; }
-  else if(n.total && n.games>n.total){ msg='総ゲーム数が通常時ゲーム数より少なくなっています。'; warn=true; }
+  else if(zN && !n.atg){ msg='特化ゾーンはAT中ゲーム数を入れたときだけ計算に入ります。'; }
   let r=calc({...n,tenma,zones,prior:state.prior,rules});
   if(!r){
     msg='入れた確定演出が矛盾していて、残る設定がありません。チェックを見直してください。'; warn=true;
     r=calc({prior:state.prior});
   }
-  const blank=!n.games&&!tN&&!n.total&&!rules.length;
+  const blank=!n.games&&!tN&&!n.atg&&!rules.length;
   $('best').textContent=blank?'-':'設定'+r.best;
   $('high').textContent=(r.high*100).toFixed(1)+'%';
   $('pay').textContent=r.pay.toFixed(1)+'%';
